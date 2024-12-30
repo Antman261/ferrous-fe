@@ -1,4 +1,4 @@
-import { startServer } from "../dev/localServer/mod.ts";
+import { startServer } from "../server/mod.ts";
 if (import.meta.main) {
   startServer();
 }

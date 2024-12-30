@@ -1,11 +1,14 @@
-import { AttrOf, css, fe, fender, html } from './ferrous.ts';
-const btn = ({ ...attrs }: AttrOf<HTMLButtonElement>) =>
-  html<HTMLButtonElement>`<button ${attr(attrs)}></button>`;
+import { AttrOf, css, fe, fender, html, Statics } from './ferrous.ts';
+
+const btn = (attrs?: AttrOf<HTMLButtonElement>) => html<HTMLButtonElement>`<button ${attrs}></button>`;
+btn.txt = (statics: Statics, ...fields: unknown[]) => btn().txt(statics, fields);
 
 const SquareApp = () => {
-  const addBtn = html<HTMLButtonElement>`<button>Add custom-square to DOM</button>`;
-  const updateBtn = html<HTMLButtonElement>`<button disabled>Update attributes</button>`;
+  // const addBtn = html<HTMLButtonElement>`<button>Add custom-square to DOM</button>`;
+  // const updateBtn = html<HTMLButtonElement>`<button disabled>Update attributes</button>`;
   // const removeBtn = html<HTMLButtonElement>`<button disabled>Remove custom-square from DOM</button>`;
+  const addBtn = btn.txt`Add custom-square to DOM`;
+  const updateBtn = btn({ disabled: true }).txt`Update attributes`;
   const removeBtn = btn({ disabled: true }).txt`Remove custom-square from DOM`;
   const square = CustomSquare({ size: '100', color: 'red' });
   addBtn.onclick = () => {
