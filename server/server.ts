@@ -9,16 +9,17 @@ type Opt = {
 };
 
 const defaultOpts = { port: 8337 } as const satisfies Opt;
-let server: Deno.HttpServer;
+let server: Deno.HttpServer | void;
 
 export const startServer = ({ port, fsRoot, urlRoot }: Opt = defaultOpts): void => {
+  if (server) return console.warn('Server is already running');
   server = Deno.serve({ port }, async (req) => {
     const { pathname } = new URL(req.url);
     const fsPath = join('./', fsRoot ?? '', pathname);
     const urlPath = join(urlRoot ?? '', pathname);
 
     if (isJsFile(urlPath)) {
-      if (await doesJsFileExist(fsPath) === false) {
+      if (urlPath.endsWith('main.js')) {
         await processTsFile(fsPath);
       }
     }
@@ -28,7 +29,8 @@ export const startServer = ({ port, fsRoot, urlRoot }: Opt = defaultOpts): void 
 };
 
 export const stopServer = async (): Promise<void> => {
-  await server.shutdown();
+  if (!server) return console.warn('Server already closed');
+  server = await server.shutdown();
 };
 
 // function logError(error: Error) {

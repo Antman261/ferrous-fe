@@ -1,7 +1,5 @@
 import { expect } from '@std/expect';
-import { delay } from '@std/async';
-import { launch } from '@astral/astral';
-import { startServer, stopServer } from '@ferrous/serve';
+import { getFerrous, withBrowser } from '../test/util.ts';
 import { css } from './css.ts';
 
 Deno.test('css', async (t) => {
@@ -36,20 +34,18 @@ Deno.test('css', async (t) => {
   // todo: css should perhaps support style elements
 });
 
-Deno.test('css: in browser', async (t) => {
-  const [browser] = await Promise.all([
-    launch(),
-    startServer({ port: 3030 }),
-  ]);
-  await delay(20_000);
-  const page = await browser.newPage('http://0.0.0.0:3030/test_fixtures/index.html');
-  await t.step('adds a global style sheet', async () => {
-    // Run code in the context of the browser
-    const value = await page.evaluate(() => {
-      css.global`div { padding: 10px; }`;
-      return document.body.querySelectorAll('style');
+Deno.test(
+  'css: in browser',
+  withBrowser(async ({ runInPage, t }) => {
+    await t.step('adds a global style sheet', async () => {
+      const value = await runInPage(() => {
+        const { css } = getFerrous();
+        css.global`div { padding: 10px; }`;
+        // deno-lint-ignore no-undef
+        const r = document!.body.querySelectorAll('style')[0].innerText;
+        return r;
+      });
+      expect(value).toBe(`div { padding: 10px; }`);
     });
-    console.log(value);
-  });
-  await Promise.all([browser.close(), stopServer]);
-});
+  }),
+);

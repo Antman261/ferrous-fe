@@ -14,17 +14,5 @@
   "exports": {
     ".": "./mod.ts",
     "./fe-serve": "./fe-serve.ts"
-  },
-  "lint": {
-    "rules": {
-      "tags": ["recommended"]
-    }
-  },
-  "fmt": {
-    "lineWidth": 110,
-    "indentWidth": 2,
-    "semiColons": true,
-    "singleQuote": true,
-    "proseWrap": "never"
   }
 }

@@ -19,10 +19,20 @@ const doesFileExist = async (path: string): Promise<boolean> => {
 
 const processTsFile = async (path: string): Promise<void> => {
   const filepath = `${path}`;
-  const file = await Deno.readFile(filepath.replace('.js', '.ts'));
-  const transpiled = await esbuild.build({ bundle: true });
-  //await Deno.writeTextFile(filepath, transpiled.code);
-  processed.add(path);
+  const filepathTs = filepath.replace('.js', '.ts');
+  if (filepathTs.endsWith('main.ts')) {
+    await esbuild.build({
+      bundle: true,
+      entryPoints: [filepathTs],
+      outdir: filepathTs.replace('main.ts', ''),
+      platform: 'neutral',
+    });
+    return;
+  }
+  // const file = await Deno.readFile(filepathTs);
+  // const transpiled = await esbuild.transform(file, { loader: 'ts', platform: 'neutral' });
+  // await Deno.writeTextFile(filepath, transpiled.code);
+  // processed.add(path);
 };
 
 export { doesJsFileExist, isJsFile, processTsFile };

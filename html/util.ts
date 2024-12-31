@@ -1,8 +1,4 @@
-export type ExtractMatchingProperties<T, V> = {
-  [K in keyof T]: T[K] extends V ? T[K] : never;
-};
-
-export type Obj<T = unknown> = Record<string | number | symbol, T>;
+import { Obj } from '@ferrous/util';
 export const mergeObjects = <A extends {}, B, C = unknown>(
   a: A,
   b: B,

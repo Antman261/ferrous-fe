@@ -37,13 +37,11 @@ const CustomSquare = (attrs: Attrs) => {
   const main = fe(CustomSquare, attrs)``; // empty node?
   const setStyles = () => {
     const { size, color } = main.getAttrs();
-    main.setStyle(
-      css`div {
+    main.style`div {
         width: ${size}px;
         height: ${size}px;
         background-color: ${color};
-      }`,
-    );
+      }`;
   };
 
   main.spawn = () => {
