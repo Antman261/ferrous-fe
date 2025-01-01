@@ -3,9 +3,9 @@ import { btn, css, div, Element, fender, html, mergeObjects } from '@ferrous/fe'
 css.global`p { padding: 15px; color: #338; }`;
 
 const SquareApp = () => {
-  const addBtn = btn().txt`Add custom-square to DOM`;
-  const updateBtn = btn().txt`Update attributes`.attr`disabled`;
-  const removeBtn = btn().txt`Remove custom-square from DOM`.attr`disabled`;
+  const addBtn = btn`Add custom-square to DOM`;
+  const updateBtn = btn`Update attributes`.attr`disabled`;
+  const removeBtn = btn`Remove custom-square from DOM`.attr`disabled`;
   const square = CustomSquare({ size: '100', color: 'red' });
   addBtn.onclick = () => {
     square.spawn();
@@ -21,8 +21,8 @@ const SquareApp = () => {
     removeBtn.disabled = true;
   };
 
-  return div().append`
-      ${div().append`${addBtn}${updateBtn}${removeBtn}`}
+  return div`
+      ${div`${addBtn}${updateBtn}${removeBtn}`}
       ${square}
     `;
 };

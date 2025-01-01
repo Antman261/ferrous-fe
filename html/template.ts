@@ -19,3 +19,9 @@ export function fromTemplate<T extends HTMLElement = HTMLElement>(
 ): T {
   return tmp.content.firstChild?.cloneNode(deepClone) as T;
 }
+
+export function rawToHTML<T extends HTMLElement = HTMLElement>(strings: Statics, fields: unknown[]): T {
+  const template = document.createElement('template');
+  template.innerHTML = getRawText(strings, fields);
+  return template.content.firstChild?.cloneNode(deepClone) as T;
+}

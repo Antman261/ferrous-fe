@@ -1,7 +1,7 @@
 import { AttrValue } from './attrs.ts';
 import { HTMLElem } from './dom.ts';
 import { getRawText, Statics, TemplateFunc } from './tag.ts';
-import { fromTemplate, getTemplate } from './template.ts';
+import { rawToHTML } from './template.ts';
 import { mergeObjects } from './util.ts';
 /**
  * An HTMLElement instance extended with FerrousFE utilities to improve DX.
@@ -52,7 +52,7 @@ export function html<T extends HTMLElem = HTMLElem>(
   ...fields: Array<Node | AttrValue>
 ): Element<T> {
   // todo: need to parse strings for HTML element strings, turn them into elements, and then append any subsequent child fields
-  const vanillaElement = fromTemplate<T>(getTemplate(strings, fields));
+  const vanillaElement = rawToHTML<T>(strings, fields);
   const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
     vanillaElement,
     // @ts-ignore
@@ -96,3 +96,30 @@ const makeMagnetic = <T extends HTMLElem = HTMLElem>(element: Element<T>): Ferro
     return attrs;
   },
 });
+
+export const tmp = <T extends HTMLElem = HTMLElem>(name: string): TemplateFunc<T, Node | AttrValue> =>
+(
+  strings: Statics,
+  ...fields: Array<Node | AttrValue>
+): Element<T> => {
+  const vanillaElement = rawToHTML<T>(strings, fields);
+  const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
+    vanillaElement,
+    // @ts-ignore
+    makeMagnetic<T>(vanillaElement),
+  );
+  customElements.define(
+    name,
+    class extends HTMLElement {
+      constructor() {
+        super();
+        const shadowRoot = this.attachShadow({ mode: 'open' });
+        shadowRoot.appendChild(element);
+      }
+    },
+  );
+  for (const field of fields) {
+    if (field instanceof Node) element.appendChild(field);
+  }
+  return element;
+};
