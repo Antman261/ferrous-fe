@@ -18,7 +18,7 @@
   "exports": {
     ".": "./mod.ts"
   },
-  "workspace": ["./server", "./POCs", "./html", "./util"],
+  "workspace": ["./POCs", "./html", "./util"],
   "compilerOptions": {
     "lib": ["dom", "dom.iterable", "dom.asynciterable", "deno.ns"]
   },
@@ -29,7 +29,6 @@
         "camelcase",
         "default-param-last",
         "eqeqeq",
-        "explicit-function-return-type",
         "explicit-module-boundary-types",
         "guard-for-in",
         "no-await-in-loop",

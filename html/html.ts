@@ -1,5 +1,4 @@
 import { AttrValue } from './attrs.ts';
-import { HTMLElem } from './dom.ts';
 import { getRawText, Statics, TemplateFunc } from './tag.ts';
 import { rawToHTML } from './template.ts';
 import { mergeObjects } from './util.ts';
@@ -47,7 +46,7 @@ export type FerrousMethods<T> = {
 };
 // idea: tmp`<div>my template</div>`
 
-export function html<T extends HTMLElem = HTMLElem>(
+export function html<T extends HTMLElement = HTMLElement>(
   strings: Statics,
   ...fields: Array<Node | AttrValue>
 ): Element<T> {
@@ -64,7 +63,7 @@ export function html<T extends HTMLElem = HTMLElem>(
   return element;
 }
 
-const makeMagnetic = <T extends HTMLElem = HTMLElem>(element: Element<T>): FerrousMethods<T> => ({
+const makeMagnetic = <T extends HTMLElement = HTMLElement>(element: Element<T>): FerrousMethods<T> => ({
   html: (strings, ...fields) => {
     if (strings.length === 0 && fields.length > 0) {
       fields.forEach((child) => element.appendChild(child));
@@ -97,29 +96,36 @@ const makeMagnetic = <T extends HTMLElem = HTMLElem>(element: Element<T>): Ferro
   },
 });
 
-export const tmp = <T extends HTMLElem = HTMLElem>(name: string): TemplateFunc<T, Node | AttrValue> =>
-(
-  strings: Statics,
-  ...fields: Array<Node | AttrValue>
-): Element<T> => {
-  const vanillaElement = rawToHTML<T>(strings, fields);
-  const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
-    vanillaElement,
-    // @ts-ignore
-    makeMagnetic<T>(vanillaElement),
-  );
-  customElements.define(
-    name,
-    class extends HTMLElement {
-      constructor() {
-        super();
-        const shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.appendChild(element);
-      }
-    },
-  );
-  for (const field of fields) {
-    if (field instanceof Node) element.appendChild(field);
-  }
-  return element;
-};
+type Opt = {
+  observedAttrs?: string[];
+  onAttrUpdated?: (name?: string, oldValue?: unknown, newValue?: unknown) => void;
+}; // todo: automatically observe attrs
+export const tmp =
+  <T extends HTMLElement = HTMLElement>(name: string, opt?: Opt) =>
+  (strings: Statics, ...fields: Array<Node | AttrValue>): Element<T> => {
+    const vanillaElement = rawToHTML<T>(strings, fields);
+    const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
+      vanillaElement,
+      // @ts-ignore
+      makeMagnetic<T>(vanillaElement),
+    );
+    // deno-lint-ignore no-undef
+    customElements.define(
+      name, // todo: get from html
+      // deno-lint-ignore no-undef
+      class extends HTMLElement {
+        static get observedAttributes() {
+          return opt?.observedAttrs ?? [];
+        }
+        constructor() {
+          super();
+          const shadowRoot = this.attachShadow({ mode: 'open' });
+          shadowRoot.appendChild(element);
+        }
+      },
+    );
+    for (const field of fields) {
+      if (field instanceof Node) element.appendChild(field);
+    }
+    return element;
+  };

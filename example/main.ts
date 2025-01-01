@@ -1,4 +1,4 @@
-import { btn, css, div, Element, fender, html, mergeObjects } from '@ferrous/fe';
+import { btn, css, div, Element, fender, html, mergeObjects, tmp } from '@ferrous/fe';
 
 css.global`p { padding: 15px; color: #338; }`;
 
@@ -34,23 +34,25 @@ type CustomSquareMethods = {
 };
 
 const CustomSquare = (attrs: Attrs) => {
-  const main: Element<HTMLElement> & CustomSquareMethods = mergeObjects(html`<div></div>`, {
-    spawn: () => {
-      main.randomize();
-      setStyles();
+  const opt = { observedAttrs: ['size', 'color'], onAttrUpdated: () => setStyles };
+  const main: Element<HTMLElement> & CustomSquareMethods = mergeObjects(
+    tmp('custom-square', opt)`<div></div>`,
+    {
+      spawn: () => {
+        main.randomize();
+        setStyles();
+      },
+      randomize: () => {
+        const [r, g, b] = [random(0, 255), random(0, 255), random(0, 255)];
+        main.attr`size="${random(50, 200)}" color="rgb(${r},${b},${g})"`;
+      },
     },
-    randomize: () => {
-      const [r, g, b] = [random(0, 255), random(0, 255), random(0, 255)];
-      main.attr`size="${random(50, 200)}" color="rgb(${r},${b},${g})"`;
-    },
-  }); // empty node?
+  ); // empty node?
   const setStyles = () => {
     const { size, color } = main.getAttrs();
     main.attr`style="width:${size}px;height:${size}px;background-color:${color};"`;
     // todo: replace with main.css`{ width: ${size}px; height: ${size}px; background-color: ${color}; }`
   };
-
-  //   main.onAttributeChanged = setStyles;
   return main;
 };
 
