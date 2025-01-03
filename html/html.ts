@@ -1,4 +1,5 @@
 import { AttrValue } from './attrs.ts';
+import { withObjectContext } from './ctx.ts';
 import { getRawText, Statics, TemplateFunc } from './tag.ts';
 import { rawToHTML } from './template.ts';
 import { mergeObjects } from './util.ts';
@@ -46,50 +47,51 @@ export type FerrousMethods<T> = {
 };
 // idea: tmp`<div>my template</div>`
 
-export function html<T extends HTMLElement = HTMLElement>(
-  strings: Statics,
-  ...fields: Array<Node | AttrValue>
-): Element<T> {
-  // todo: need to parse strings for HTML element strings, turn them into elements, and then append any subsequent child fields
-  const vanillaElement = rawToHTML<T>(strings, fields);
-  const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
-    vanillaElement,
-    // @ts-ignore
-    makeMagnetic<T>(vanillaElement),
-  );
-  for (const field of fields) {
-    if (field instanceof Node) element.appendChild(field);
-  }
-  return element;
-}
-
-const makeMagnetic = <T extends HTMLElement = HTMLElement>(element: Element<T>): FerrousMethods<T> => ({
-  html: (strings, ...fields) => {
-    if (strings.length === 0 && fields.length > 0) {
-      fields.forEach((child) => element.appendChild(child));
-    }
-    element.appendChild(html(strings, ...fields));
+export const html = withObjectContext(
+  function html<T extends HTMLElement = HTMLElement>(
+    strings: Statics,
+    ...fields: Array<Node | AttrValue>
+  ): Element<T> {
+    // todo: need to parse strings for HTML element strings, turn them into elements, and then append any subsequent child fields
+    const vanillaElement = rawToHTML<T>(strings, fields);
+    const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
+      vanillaElement,
+      makeMagnetic<T>(() => element),
+    );
+    // for (const field of fields) {
+    //   if (field instanceof Node) element.appendChild(field);
+    // }
     return element;
   },
+);
+
+const makeMagnetic = <T extends HTMLElement = HTMLElement>(get: () => Element<T>): FerrousMethods<T> => ({
+  html: (strings, ...fields) => {
+    if (strings.length === 0 && fields.length > 0) {
+      fields.forEach((child) => get().appendChild(child));
+    }
+    get().appendChild(html(strings, ...fields));
+    return get();
+  },
   txt: (strings, ...fields) => {
-    element.textContent = getRawText(strings, ...fields);
-    return element;
+    get().textContent = getRawText(strings, ...fields);
+    return get();
   },
   attr: (strings, ...fields) => {
     getRawText(strings, ...fields).split(' ').map((a) => {
       const [key, val = ''] = a.split('=');
       const value = val.replaceAll('"', '');
-      value === 'false' ? element.removeAttribute(key) : element.setAttribute(key, value);
+      value === 'false' ? get().removeAttribute(key) : get().setAttribute(key, value);
     });
-    return element;
+    return get();
   },
   append: (_strings, ...fields) => {
-    fields.flat().forEach((child) => element.appendChild(child));
-    return element;
+    fields.flat().forEach((child) => get().appendChild(child));
+    return get();
   },
   getAttrs: () => {
     const attrs: Record<string, string | boolean> = {};
-    for (const attr of element.attributes) {
+    for (const attr of get().attributes) {
       attrs[attr.name] = attr.value;
     }
     return attrs;
@@ -100,32 +102,47 @@ type Opt = {
   observedAttrs?: string[];
   onAttrUpdated?: (name?: string, oldValue?: unknown, newValue?: unknown) => void;
 }; // todo: automatically observe attrs
-export const tmp =
-  <T extends HTMLElement = HTMLElement>(name: string, opt?: Opt) =>
-  (strings: Statics, ...fields: Array<Node | AttrValue>): Element<T> => {
-    const vanillaElement = rawToHTML<T>(strings, fields);
-    const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
-      vanillaElement,
-      // @ts-ignore
-      makeMagnetic<T>(vanillaElement),
-    );
+export const defineCustomElement =
+  // deno-lint-ignore explicit-module-boundary-types
+  (opts, initComponent) => {
+    const name = toKebabCase(opts.name);
+
+    // TODO template fn: statics.length > 1 ? each field becomes a tracked object and associated with a parent (strings become FeXT), on subsequent re-renders all elements are re-evaluated and directly updated.
     // deno-lint-ignore no-undef
     customElements.define(
-      name, // todo: get from html
+      name,
       // deno-lint-ignore no-undef
       class extends HTMLElement {
         static get observedAttributes() {
-          return opt?.observedAttrs ?? [];
+          return opts?.observedAttrs ?? [];
         }
         constructor() {
           super();
+        }
+        connectedCallback() {
+          console.log('element added to page.');
           const shadowRoot = this.attachShadow({ mode: 'open' });
-          shadowRoot.appendChild(element);
+          const res = initWithContext(initComponent, { opts, shadowRoot });
+          shadowRoot.appendChild(res.render());
+        }
+
+        disconnectedCallback() {
+          console.log('element removed from page.');
+        }
+
+        adoptedCallback() {
+          console.log('element moved to new page.');
+        }
+
+        attributeChangedCallback(name, oldValue, newValue) {
+          console.log('element attributes changed.');
         }
       },
     );
-    for (const field of fields) {
-      if (field instanceof Node) element.appendChild(field);
-    }
-    return element;
+    return (attrs?: Attrs) => {
+      if (getContext().html) {
+        return `${name}${attrs ? ` ${toAttrText(attrs)}` : ''}`;
+      }
+      return document.createElement(name);
+    };
   };

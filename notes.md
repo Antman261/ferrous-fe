@@ -56,25 +56,190 @@ asCustomElement({
     onAttrUpdate: () => {
       state.count  = Math.min(state.count, attrs.maxCount);
     },
-    render: () => html`
-    <slot></slot>
-    <div class="card">
-        ${btn`Count: ${state.count}`.onClick(incrementCount)}
-    </div>`
+    render: () =>
+      html`
+        <slot></slot>
+        <div class="card">
+            ${btn`Count: ${state.count}`.onClick(incrementCount)}
+        </div>
+    `,
   };
 });
 ```
 
-This would allow Ferrous to Proxy `localState` and automatically update on change. We could even wrap 
-the `count` value in an object with `toString` overridden, so that it becomes an HTML Element like 
-`<number value="1" />` when used in `html` and automatically updated when changed, without triggering 
-a full re-render
+This would allow Ferrous to trap `localState` and automatically update on change. 
 
 * only components can change their internal state; never their parents
-* only a parent can change a component's attributes; never itself
+* only a parent can change a component's attributes; never itself.
+  * however: it's best to treat attributes as initialisers; access mutable properties shared between components via app state
 
 On attr/state change:
 
-* setter calls component's queueUpdate method
+* setter calls component's `enqueueUpdate` method
 * compare new/old values, if changed: add the component's render function to Set: `renderingQueue`
 * every `requestAnimationFrame`, the renderer calls every function in `renderingQueue` and clears it once completed
+
+Don't pass data between custom components. Don't hoist state. Prefer global state.
+
+Attributes:
+
+* camelCase in javascript, kebab-case in html.
+
+Shadow Root:
+
+a Component's template is rendered using its shadow root: Styles are scoped to shadow root
+
+Inheritance:
+
+* Don't bother! Just share styles etc as values or functions when needed
+
+Styles:
+
+* https://lit.dev/docs/components/styles/#using-unicode-escapes-in-styles
+* https://lit.dev/docs/components/styles/#slotted
+* https://lit.dev/docs/components/styles/#style-element
+
+Theming:
+
+* https://developer.mozilla.org/en-US/docs/Web/CSS/Inheritance
+* https://developer.mozilla.org/en-US/docs/Web/CSS/--*
+
+Example with all properties and features:
+
+```typescript
+import { defineCustomElement } from '@ferrous/fe';
+
+const clickCounter = defineCustomElement({ // runs once when a new custom element is defined (technically immediately before it is defined)
+  name: 'click-counter', // must be globally unique, required when using an anonymous function definition
+  styles: css`:host { background-color: aqua; }`, // exists in shadow-dom, shared amongst all instances
+  localState: { count: 0 }, // copied per instance
+  publicAttrs: { maxCount: 10 }, // default value if undefined, automatically observed, calls onAttrUpdate when changed via markup
+}, 
+// this function runs once per instance when it is mounted to the DOM
+({ state, attrs, app, enqueueUpdate }) => { // never destructure state, attrs, or app 
+  app.onChangeTo('user', enqueueUpdate); // subscriptions to global state must be explicitly defined: how FerrousFe avoids needing a virtual dom & renderer 
+
+  const isMaxed = () => state.count >== attrs.maxCount;
+  const isEven = () => state.count % 2 === 0;
+  const getStatus = () => state.count === 0 ? 'STOPPED' : isMaxed() ? 'MAXXED' : 'COUNTING';
+  const incrementCount = () => {
+    if (isMaxed()) return;
+    state.count += 1;
+  };
+
+  const maxedStyle = css.style`.card { background-color: aqua; }`;
+  return {
+    onAttrUpdate: () => { // called after attributes updated but before render
+      state.count  = Math.min(state.count, attrs.maxCount);
+    },
+    render: () => { 
+      /* render is called when:
+          * the element is defined - to create the template children in the shadow-dom
+          * the element is instantiated in the DOM, required if attrs are not default
+          * attributes have changed
+          * component state has changed
+          * app state has changed 
+        
+        never define a function inside render! 
+      */
+      const { count } = state; 
+      // safe to destructure inside render, provided handler functions are defined in instance; never update in render fn
+      const cardClass = attr.class(['card', isEven() && 'even']);
+      // makes valid class string: 'class="card even"' | 'class="card"'
+      return html`
+        ${onTrue(isMaxed(), maxedStyle)}
+        <slot></slot> ${/* Children go here. Components can have 0..n slots */}
+        <p>Hello ${app.user?.name ?? 'there!'}</p>
+        ${onTrue(
+          attrs.showMetadata, 
+          onCase(getStatus(), [
+            ['STOPPED', () => span`<strong>Status: </strong> Stopped`],
+            ['MAXXED', () => span`<strong>Status: </strong> Maximum reached @ ${state.count}`],
+            ['COUNTING', () => span`<strong>Status: </strong> Counting...`],
+          ], () => h2`Error!`)
+        )}
+        <div ${cardClass}>
+            ${btn`Count: ${count}`.onClick(incrementCount)}
+        </div>`
+    },
+  };
+});
+
+const main = defineCustomElement({}, function main() { // component name 'main' taken from function name
+  return { render: () => html`<click-counter max-count="12" />` };
+});
+
+// alternatively
+const main = defineCustomElement({ name: 'main' }, () => ({ render: () => html`<${clickCounter({ maxCount: 12 })} />` }));
+
+// with children
+const main = defineCustomElement({ name: 'main' }, () => ({ 
+  render: () => html`
+      <${clickCounter({ maxCount: 12 })}>
+        <h1>Welcome to Click Counter 😎</h1>
+      </click-counter>`,
+}));
+
+// another alternative with children
+const main = defineCustomElement({ name: 'main' }, () => ({ 
+  render: () => html`
+      <click-counter max-count="12">
+        <h1>Welcome to Click Counter 😎</h1>
+      </click-counter>`,
+}));
+
+document.body.appendChild(html`<main />`);
+document.body.appendChild(main());
+```
+
+```typescript
+import { defineCustomElement } from '@ferrous/fe';
+
+const clickCounter = defineCustomElement({ 
+  name: 'click-counter', 
+  styles: css`:host { background-color: aqua; }`,
+  localState: { count: 0 }, // only primitives: flatten complex objects
+  publicAttrs: { maxCount: 10, showMetadata: false },
+}, 
+({ state, attrs, app, enqueueUpdate, shadowRoot }) => {
+  app.onChangeTo('user', enqueueUpdate); // automatically cleaned on disconnect
+
+  const isMaxed = () => state.count >== attrs.maxCount;
+  const isEven = () => state.count % 2 === 0;
+  const getStatus = () => state.count === 0 ? 'PENDING' : isMaxed() ? 'DONE' : 'OPEN';
+  const incrementCount = () => {
+    if (isMaxed()) return;
+    state.count += 1;
+  };
+
+  // ^ context aware element functions (template, css, span, h2, etc) to create & update children within this instance
+
+  const maxedStyle = css.style`.card { background-color: aqua; }`;
+  return {
+    onAttrUpdate: () => {
+      state.count = Math.min(state.count, attrs.maxCount);
+    },
+    render: () => {
+      const { count, showMetadata } = { ...state, ...attrs }; 
+      const cardClass = attr.class(['card', isEven() && 'even'])/* FeAttx */;
+
+      return template`
+        ${onTrue(isMaxed(), maxedStyle) /* StyleElement | null */}
+        <slot></slot>
+        <p>Hello ${app.user?.name ?? 'there!'/* FeXT */}</p>
+        ${onTrue(
+          showMetadata, 
+          onCase(getStatus(), [
+            ['PENDING', () => span`<strong>Status: </strong> Stopped`],
+            ['DONE', () => span`<strong>Status: </strong> Max reached @ ${count /* FeXT */}`],
+            ['OPEN', () => span`<strong>Status: </strong> Counting...`],
+          ], h2`Error!`)
+        )/* element, fully executed each render */}
+        <div ${cardClass/* FeAttx */}>
+            ${btn`Count: ${count/* FeXT */}`.onClick(incrementCount)/* element */}
+        </div>`
+    },
+    onDisconnect: () => { /* cleanup, e.g. window.removeEventListener */ }
+  };
+});
+```

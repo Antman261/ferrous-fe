@@ -5,6 +5,8 @@ export type ExtractMatchingProperties<T, V> = {
 export type Obj<T = unknown> = Record<string | number | symbol, T>;
 
 export type Fn<R, A = never> = (...a: A extends unknown ? A[] : never) => R;
+// deno-lint-ignore no-explicit-any
+export type AnyFn = (...args: any[]) => any;
 export type Px<T> = Promise<T>;
 export type Alphalow =
   | 'a'
