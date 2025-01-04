@@ -11,7 +11,7 @@ export type AttrValue = string | boolean; // https://developer.mozilla.org/en-US
 export type AttributeText<S extends string> = `${AttrName<S>}=${AttrValue}`;
 export type Attributes = Record<string, AttrValue> & { children?: Node[] };
 
-type FeAttx = {
+export type FeAttx = {
   attrName: string;
   targets: Set<HTMLElement>;
   attachParent: (e: HTMLElement) => void;

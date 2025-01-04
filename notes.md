@@ -224,9 +224,9 @@ const clickCounter = defineCustomElement({
       const cardClass = attr.class(['card', isEven() && 'even'])/* FeAttx */;
 
       return template`
-        ${onTrue(isMaxed(), maxedStyle) /* StyleElement | null */}
+        ${onTrue(isMaxed(), maxedStyle) /* StyleElement | undefined */}
         <slot></slot>
-        <p>Hello ${app.user?.name ?? 'there!'/* FeXT */}</p>
+        <p>Hello ${app.user?.name ?? 'there!'}</p>
         ${onTrue(
           showMetadata, 
           onCase(getStatus(), [
