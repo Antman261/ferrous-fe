@@ -1,5 +1,5 @@
 import { Statics } from './tag.ts';
-import { getRawText, TemplateFunc } from './tag.ts';
+import { tagFnToText, TemplateFunc } from './tag.ts';
 import { makeCallableObject } from './util.ts';
 
 type FeCss = TemplateFunc<string, unknown> & {
@@ -8,7 +8,7 @@ type FeCss = TemplateFunc<string, unknown> & {
 };
 
 export const css: FeCss = makeCallableObject(
-  (statics: Statics, ...fields: unknown[]): string => getRawText(statics, ...fields),
+  (statics: Statics, ...fields: unknown[]): string => tagFnToText(statics, ...fields),
   {
     global: (statics: Statics, ...fields: unknown[]) => {
       const styleElement = makesStyleElement(statics, fields);
@@ -20,6 +20,6 @@ export const css: FeCss = makeCallableObject(
 
 function makesStyleElement(statics: Statics, ...fields: unknown[]) {
   const styleElement = document.createElement('style');
-  styleElement.textContent = getRawText(statics, ...fields);
+  styleElement.textContent = tagFnToText(statics, ...fields);
   return styleElement;
 }

@@ -3,34 +3,26 @@
  *
  * This context is required for renderers to ensure they lookup the correct objects for comparison and update
  */
-import { AnyFn, Obj } from '../util/type.ts';
+import { AnyFn, Maybe, Obj } from '@ferrous/util';
 
-type ComponentContextTuple = [AnyFn[], number];
-type ComponentContext = Map<Obj, ComponentContextTuple>; // required for render funcs to find their tree
-type ElementContextTuple = [AnyFn[], string];
-type FnIdentity = { identity: `${string}:${number}` };
-type CtxArgs = { obj?: Obj; fn?: AnyFn };
+type Context = Map<Ref, ContextTuple>; // for render funcs to find their tree
+type Ref = Obj | AnyFn;
+type ContextTuple = [AnyFn[], number];
 
-const objCtx: ComponentContext = new Map();
+const objCtx: Context = new Map();
 
-let activeComponentCtx: ComponentContextTuple | undefined;
-let activeElementCtx: ElementContextTuple | undefined;
-export const getActiveContext = ({ obj, fn }: CtxArgs = {}): ComponentContextTuple | ElementContextTuple => {
-  if (!activeComponentCtx && obj) {
-    activeComponentCtx = objCtx.get(obj) ?? objCtx.set(obj, [[], randomId()]).get(obj)!;
-  }
+let activeCtx: Maybe<ContextTuple>;
 
-  if (activeComponentCtx) {
-    return activeComponentCtx;
-  }
-  if (!activeElementCtx && fn) {
-    activeElementCtx = [[], fn.name];
-  }
-  if (activeElementCtx) {
-    return activeElementCtx;
-  }
-  throw new Error('No active context, and no obj or fn provided to activate new context');
+export type CtxArgs = { obj?: Obj; fn?: AnyFn };
+
+export const getActiveContext = ({ obj, fn }: CtxArgs = {}): ContextTuple => {
+  const ref = obj ?? fn;
+  if (!activeCtx && ref) activeCtx = getOrInitContext(ref);
+  if (activeCtx) return activeCtx;
+  throw new Error('No active context: unable to init new context without context reference.');
 };
+
+type FnIdentity = { identity: `${string}:${number}` };
 export const withObjectContext = <T extends AnyFn>(fn: T, identity?: CtxArgs): T => {
   // @ts-expect-error 2322
   const finalFn: T & FnIdentity = (...args) => {
@@ -43,5 +35,11 @@ export const withObjectContext = <T extends AnyFn>(fn: T, identity?: CtxArgs): T
   };
   return finalFn;
 };
+
+const getOrInitContext = (ref: Ref): Maybe<ContextTuple> => objCtx.get(ref) ?? initCtx(ref);
+
+const initCtx = (ref: Ref): Maybe<ContextTuple> => objCtx.set(ref, initCtxTuple()).get(ref);
+
+const initCtxTuple = (): ContextTuple => [[], randomId()];
 
 const randomId = () => Math.random() * 1_000_000_000_000; // not great, but it will work for most DOMs

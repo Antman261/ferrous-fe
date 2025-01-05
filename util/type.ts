@@ -1,7 +1,7 @@
 export type ExtractMatchingProperties<T, V> = {
   [K in keyof T]: T[K] extends V ? T[K] : never;
 };
-
+export type Maybe<T> = T | undefined;
 export type ValueOf<T> = T[keyof T];
 export type Writeable<T> = { -readonly [P in keyof T]: T[P] };
 // deno-lint-ignore no-explicit-any

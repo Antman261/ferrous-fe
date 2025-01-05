@@ -1,6 +1,6 @@
 import { AttrValue } from './attrs.ts';
 import { withObjectContext } from './ctx.ts';
-import { getRawText, Statics, TemplateFunc } from './tag.ts';
+import { Statics, tagFnToText, TemplateFunc } from './tag.ts';
 import { rawToHTML } from './template.ts';
 import { mergeObjects } from './util.ts';
 /**
@@ -74,11 +74,11 @@ const makeMagnetic = <T extends HTMLElement = HTMLElement>(get: () => Element<T>
     return get();
   },
   txt: (strings, ...fields) => {
-    get().textContent = getRawText(strings, ...fields);
+    get().textContent = tagFnToText(strings, ...fields);
     return get();
   },
   attr: (strings, ...fields) => {
-    getRawText(strings, ...fields).split(' ').map((a) => {
+    tagFnToText(strings, ...fields).split(' ').map((a) => {
       const [key, val = ''] = a.split('=');
       const value = val.replaceAll('"', '');
       value === 'false' ? get().removeAttribute(key) : get().setAttribute(key, value);
