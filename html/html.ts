@@ -1,7 +1,7 @@
 import { AttrValue } from './attrs.ts';
 import { withObjectContext } from './ctx.ts';
+import { textToHtmlElements } from './parse/toHTML.ts';
 import { Statics, tagFnToText, TemplateFunc } from './tag.ts';
-import { rawToHTML } from './template.ts';
 import { mergeObjects } from './util.ts';
 /**
  * An HTMLElement instance extended with FerrousFE utilities to improve DX.
@@ -53,7 +53,7 @@ export const html = withObjectContext(
     ...fields: Array<Node | AttrValue>
   ): Element<T> {
     // todo: need to parse strings for HTML element strings, turn them into elements, and then append any subsequent child fields
-    const vanillaElement = rawToHTML<T>(strings, fields);
+    const [vanillaElement] = textToHtmlElements<T>(tagFnToText(strings, fields));
     const element: Element<T> = mergeObjects<T, FerrousMethods<T>>(
       vanillaElement,
       makeMagnetic<T>(() => element),

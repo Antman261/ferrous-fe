@@ -243,3 +243,8 @@ const clickCounter = defineCustomElement({
   };
 });
 ```
+
+State system:
+* one big state object
+* every object is proxied with a set trap, which emit events every time a property is set
+* allows every custom element to define which parts of state to subscribe to
