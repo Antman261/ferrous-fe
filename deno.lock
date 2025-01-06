@@ -21,6 +21,7 @@
     "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/testing@*": "1.0.8",
     "jsr:@std/testing@^1.0.8": "1.0.8",
+    "jsr:@std/text@^1.0.9": "1.0.9",
     "jsr:@zip-js/zip-js@^2.7.52": "2.7.54",
     "npm:@deno/vite-plugin@^1.0.2": "1.0.2_vite@6.0.6",
     "npm:esbuild@~0.24.2": "0.24.2",
@@ -99,6 +100,9 @@
         "jsr:@std/internal",
         "jsr:@std/path@^1.0.8"
       ]
+    },
+    "@std/text@1.0.9": {
+      "integrity": "b2db4abc3e6ab93eb0280a0d5e126fd3fca80955bcc297ccaaf555e995eab747"
     },
     "@zip-js/zip-js@2.7.54": {
       "integrity": "a28b93b56a6cb2ed0f613355b2e9120ea9f6e9703dd6ae1bbc0088cfa3fef692"
@@ -340,6 +344,7 @@
       "jsr:@std/expect@^1.0.10",
       "jsr:@std/path@^1.0.8",
       "jsr:@std/testing@^1.0.8",
+      "jsr:@std/text@^1.0.9",
       "npm:@deno/vite-plugin@^1.0.2",
       "npm:vite@^6.0.6"
     ],

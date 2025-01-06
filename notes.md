@@ -212,8 +212,6 @@ const clickCounter = defineCustomElement({
     state.count += 1;
   };
 
-  // ^ context aware element functions (template, css, span, h2, etc) to create & update children within this instance
-
   const maxedStyle = css.style`.card { background-color: aqua; }`;
   return {
     onAttrUpdate: () => {
@@ -224,7 +222,7 @@ const clickCounter = defineCustomElement({
       const cardClass = attr.class(['card', isEven() && 'even'])/* FeAttx */;
 
       return template`
-        ${onTrue(isMaxed(), maxedStyle) /* StyleElement | undefined */}
+        ${isMaxed() ? maxedStyle : null/* StyleElement | null */}
         <slot></slot>
         <p>Hello ${app.user?.name ?? 'there!'}</p>
         ${onTrue(
