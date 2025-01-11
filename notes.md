@@ -116,21 +116,21 @@ const clickCounter = defineCustomElement({ // runs once when a new custom elemen
   publicAttrs: { maxCount: 10 }, // default value if undefined, automatically observed, calls onAttrUpdate when changed via markup
 }, 
 // this function runs once per instance when it is mounted to the DOM
-({ state, attrs, app, enqueueUpdate }) => { // never destructure state, attrs, or app 
-  app.onChangeTo('user', enqueueUpdate); // subscriptions to global state must be explicitly defined: how FerrousFe avoids needing a virtual dom & renderer 
+({ local, attrs, global, enqueueUpdate }) => { // never destructure local, attrs, or global 
+  global.onChangeTo('user', enqueueUpdate); // subscriptions to global state must be explicitly defined: how FerrousFe avoids needing a virtual dom & renderer 
 
-  const isMaxed = () => state.count >== attrs.maxCount;
-  const isEven = () => state.count % 2 === 0;
-  const getStatus = () => state.count === 0 ? 'STOPPED' : isMaxed() ? 'MAXXED' : 'COUNTING';
+  const isMaxed = () => local.count >== attrs.maxCount;
+  const isEven = () => local.count % 2 === 0;
+  const getStatus = () => local.count === 0 ? 'STOPPED' : isMaxed() ? 'MAXXED' : 'COUNTING';
   const incrementCount = () => {
     if (isMaxed()) return;
-    state.count += 1;
+    local.count += 1;
   };
 
   const maxedStyle = css.style`.card { background-color: aqua; }`;
   return {
     onAttrUpdate: () => { // called after attributes updated but before render
-      state.count  = Math.min(state.count, attrs.maxCount);
+      local.count  = Math.min(local.count, attrs.maxCount);
     },
     render: () => { 
       /* render is called when:
@@ -138,23 +138,23 @@ const clickCounter = defineCustomElement({ // runs once when a new custom elemen
           * the element is instantiated in the DOM, required if attrs are not default
           * attributes have changed
           * component state has changed
-          * app state has changed 
+          * global state has changed 
         
         never define a function inside render! 
       */
-      const { count } = state; 
+      const { count } = local; 
       // safe to destructure inside render, provided handler functions are defined in instance; never update in render fn
       const cardClass = attr.class(['card', isEven() && 'even']);
       // makes valid class string: 'class="card even"' | 'class="card"'
       return html`
         ${onTrue(isMaxed(), maxedStyle)}
         <slot></slot> ${/* Children go here. Components can have 0..n slots */}
-        <p>Hello ${app.user?.name ?? 'there!'}</p>
+        <p>Hello ${global.user?.name ?? 'there!'}</p>
         ${onTrue(
           attrs.showMetadata, 
           onCase(getStatus(), [
             ['STOPPED', () => span`<strong>Status: </strong> Stopped`],
-            ['MAXXED', () => span`<strong>Status: </strong> Maximum reached @ ${state.count}`],
+            ['MAXXED', () => span`<strong>Status: </strong> Maximum reached @ ${local.count}`],
             ['COUNTING', () => span`<strong>Status: </strong> Counting...`],
           ], () => h2`Error!`)
         )}
@@ -201,30 +201,30 @@ const clickCounter = defineCustomElement({
   localState: { count: 0 }, // only primitives: flatten complex objects
   publicAttrs: { maxCount: 10, showMetadata: false },
 }, 
-({ state, attrs, app, enqueueUpdate, shadowRoot }) => {
-  app.onChangeTo('user', enqueueUpdate); // automatically cleaned on disconnect
+({ local, attrs, global, enqueueUpdate, shadowRoot }) => {
+  global.user.onUpdate(enqueueUpdate); // automatically cleaned on disconnect
 
-  const isMaxed = () => state.count >== attrs.maxCount;
-  const isEven = () => state.count % 2 === 0;
-  const getStatus = () => state.count === 0 ? 'PENDING' : isMaxed() ? 'DONE' : 'OPEN';
+  const isMaxed = () => local.count >== attrs.maxCount;
+  const isEven = () => local.count % 2 === 0;
+  const getStatus = () => local.count === 0 ? 'PENDING' : isMaxed() ? 'DONE' : 'OPEN';
   const incrementCount = () => {
     if (isMaxed()) return;
-    state.count += 1;
+    local.count += 1;
   };
 
   const maxedStyle = css.style`.card { background-color: aqua; }`;
   return {
     onAttrUpdate: () => {
-      state.count = Math.min(state.count, attrs.maxCount);
+      local.count = Math.min(local.count, attrs.maxCount);
     },
     render: () => {
-      const { count, showMetadata } = { ...state, ...attrs }; 
+      const { count, showMetadata } = { ...local, ...attrs }; 
       const cardClass = attr.class(['card', isEven() && 'even'])/* FeAttx */;
 
       return template`
         ${isMaxed() ? maxedStyle : null/* StyleElement | null */}
         <slot></slot>
-        <p>Hello ${app.user?.name ?? 'there!'}</p>
+        <p>Hello ${global.user?.name ?? 'there!'}</p>
         ${onTrue(
           showMetadata, 
           onCase(getStatus(), [
