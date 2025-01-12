@@ -28,3 +28,7 @@ Primary role of frontend framework:
 * Use styled-components or [css imports](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules#loading_non-javascript_resources)?
 * Provide a server for production? Probably; enables an experience where everything "just works"
   * Could "build" client by creating a binary running a web server that delivers FE
+
+## References
+
+* https://github.com/facebook/react/issues/11171

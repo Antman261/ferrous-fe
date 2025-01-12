@@ -42,4 +42,4 @@ const initCtx = (ref: Ref): Maybe<ContextTuple> => objCtx.set(ref, initCtxTuple(
 
 const initCtxTuple = (): ContextTuple => [[], randomId()];
 
-const randomId = () => Math.random() * 1_000_000_000_000; // not great, but it will work for most DOMs
+const randomId = () => Math.random() *; // not great, but it will work for most DOMs

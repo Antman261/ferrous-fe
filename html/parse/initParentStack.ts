@@ -3,14 +3,16 @@ import { Maybe } from '@ferrous/util';
 type Opt = { withChildren: boolean };
 export type ParentStack = {
   top: TopParentMethods;
-  getAttr: () => Maybe<Attr>;
-  setAttr: (a: Attr) => void;
-  setAttrValue: (v: string) => void;
-  remove: () => void;
+  getAttr(): Maybe<Attr>;
+  setAttr(a: Attr): void;
+  setAttrValue(v: string): void;
+  remove(): void;
+  currentIndex(): number;
+  bottom: HTMLTemplateElement;
 };
 
 type TopParentMethods = {
-  addChild: (e: HTMLElement, o: Opt) => void;
+  addChild: (e: HTMLElement | Element, o?: Opt) => void;
   addTextNode: (t: Text) => void;
   setRawText: (t: string) => void;
 };
@@ -25,10 +27,10 @@ export const initParentStack = (tmp: HTMLTemplateElement): ParentStack => {
     top: {
       addChild: (element, { withChildren } = defaultOpt) => {
         getTop().appendChild(element);
-        if (withChildren) parents.push(element);
+        if (withChildren && element instanceof HTMLElement) parents.push(element);
       },
       addTextNode: (textNode) => getTop().appendChild(textNode),
-      setRawText: (text: string) => getTop().textContent = text,
+      setRawText: (text) => getTop().textContent = text,
     },
     getAttr: () => attribute,
     setAttr: (value) => getTop().setAttributeNode(attribute = value),
@@ -37,5 +39,7 @@ export const initParentStack = (tmp: HTMLTemplateElement): ParentStack => {
       attribute = undefined;
     },
     remove: () => parents.pop(),
+    currentIndex: () => parents.length - 1,
+    bottom: tmp,
   };
 };

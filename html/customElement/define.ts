@@ -1,51 +1,24 @@
 import { toKebabCase } from '@std/text';
-import { Arrayable, CommonPrimitive } from '@ferrous/util';
-import { GlobalState } from '../global/state.ts';
+import { Stateable } from '../global/state.ts';
+import { Attributes, toAttrText } from '../attrs.ts';
+import { ContextualComponent, InitComponent, initWithContext } from './initWithContext.ts';
+import { CustomElementOpt } from './types.ts';
 
-type Stateable = Record<string, Arrayable<CommonPrimitive>>;
-type PAttrs = Record<string, CommonPrimitive>;
-type Opt<S extends Stateable, A extends PAttrs> = {
-  name: string;
-  styles?: HTMLStyleElement[];
-  localState?: S;
-  publicAttrs?: A;
-};
-type Ret<A extends PAttrs> = {
+type Ret<A extends Attributes> = {
   html: (attrs?: Partial<A>) => string;
   element: (attrs?: Partial<A>) => HTMLElement;
 };
-type DefineCustomElementFn = <S extends Stateable, A extends PAttrs>(
-  opts: Opt<S, A>,
-  initComponent: InitComponent<S, A>,
+type DefineCustomElementFn = <S extends Stateable, A extends Attributes>(
+  opts: CustomElementOpt<S, A>,
+  initComponent: InitComponent<S>,
 ) => Ret<A>;
 
-type InitComponent<S extends Stateable, A extends PAttrs> = (
-  initOpts: InitOpts<S, A>,
-) => CustomElementMethods;
-type InitOpts<S extends Stateable, A extends PAttrs> = {
-  local: Subscribable<S>;
-  attrs: A;
-  global: GlobalState;
-  // enqueueUpdate: EnqueueUpdate,
-};
-type CustomElementMethods = {
-  onAttrUpdated?: (name?: string, oldValue?: unknown, newValue?: unknown) => void;
-  render: () => HTMLElement[];
-  onDisconnect: () => void;
-};
-
-type Subscribable<LocalState extends Stateable, K extends keyof LocalState = keyof LocalState> =
-  & LocalState
-  & {
-    on: (k: K, callback: (old: LocalState[K], updated: LocalState[K]) => void) => void;
-  };
-
-export const defineCustomElement: DefineCustomElementFn = <S extends Stateable, A extends PAttrs>(
-  opts: Opt<S, A>,
-  initComponent: InitComponent<S, A>,
+export const defineCustomElement: DefineCustomElementFn = <S extends Stateable, A extends Attributes>(
+  opts: CustomElementOpt<S, A>,
+  initComponent: InitComponent<S>,
 ): Ret<A> => {
   const name = toKebabCase(opts.name);
-  let res: CustomElementMethods;
+  let component: ContextualComponent;
   // deno-lint-ignore no-undef
   customElements.define(
     name,
@@ -60,11 +33,8 @@ export const defineCustomElement: DefineCustomElementFn = <S extends Stateable, 
       connectedCallback() {
         console.log('element added to page.');
         const shadowRoot = this.attachShadow({ mode: 'open' });
-        res = initWithContext(initComponent, { opts, shadowRoot });
-        const children = res.render();
-        for (const child of children) {
-          shadowRoot.appendChild(child);
-        }
+        shadowRoot.host.firstElementChild;
+        component = initWithContext(initComponent, { opts, shadowRoot });
       }
 
       disconnectedCallback() {
@@ -75,13 +45,26 @@ export const defineCustomElement: DefineCustomElementFn = <S extends Stateable, 
         console.log('element moved to new page.');
       }
 
-      attributeChangedCallback(name: string, oldValue: unknown, newValue: unknown) {
-        res?.onAttrUpdated ? res?.onAttrUpdated(name, oldValue, newValue) : undefined;
+      attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+        component?.updateAttributes(name, oldValue, newValue);
       }
     },
   );
   return {
-    html: (attrs?: Attrs) => `${name}${attrs ? ` ${toAttrText(attrs)}` : ''}`,
-    element: (attrs?: Attrs) => document.createElement(name),
+    // @ts-expect-error HKT error
+    html: (attrs) => `${name}${attrs ? ` ${toAttrText<A>(attrs)}` : ''}`,
+    element: (attrs) => {
+      const e = document.createElement(name);
+      if (attrs) {
+        for (const [name, value] of Object.entries(attrs)) {
+          if (typeof value === 'boolean') {
+            if (value === true) e.setAttribute(name, '');
+            continue;
+          }
+          e.setAttribute(name, value);
+        }
+      }
+      return e;
+    },
   };
 };

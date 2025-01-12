@@ -7,9 +7,9 @@ export type AttrOf<T> = Partial<ExtractMatchingProperties<T, AttrValue>>;
  */
 type AttrChar = Alphalow | '-';
 export type AttrName<S extends string> = S & StringOf<DoesNotStartWith<S, 'xml'>, AttrChar>;
-export type AttrValue = string | boolean; // https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#boolean_attributes
+export type AttrValue = string | null; // https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes#boolean_attributes
 export type AttributeText<S extends string> = `${AttrName<S>}=${AttrValue}`;
-export type Attributes = Record<string, AttrValue> & { children?: Node[] };
+export type Attributes = Record<string, AttrValue>;
 
 export type FeAttx = {
   attrName: string;
@@ -29,6 +29,14 @@ export const attr: AttrUtil = {
     // todo: find the FeAttx by context and update
   },
 };
+export const toAttrText = <A extends Attributes>(attrs: A): string =>
+  Object.entries(attrs).map(([name, value]) => {
+    if (typeof value === 'boolean') {
+      if (value === true) return name;
+      return '';
+    }
+    return `${name}="${value.toString().trim()}"`;
+  })..join(' ');
 
 // type test for AttrName
 // const c = <S extends string>(a: AttrName<S>) => a;

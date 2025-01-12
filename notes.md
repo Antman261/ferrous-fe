@@ -117,7 +117,7 @@ const clickCounter = defineCustomElement({ // runs once when a new custom elemen
 }, 
 // this function runs once per instance when it is mounted to the DOM
 ({ local, attrs, global, enqueueUpdate }) => { // never destructure local, attrs, or global 
-  global.onChangeTo('user', enqueueUpdate); // subscriptions to global state must be explicitly defined: how FerrousFe avoids needing a virtual dom & renderer 
+  global.notify('user', enqueueUpdate); // subscriptions to global state must be explicitly defined: how FerrousFe avoids needing a virtual dom & renderer 
 
   const isMaxed = () => local.count >== attrs.maxCount;
   const isEven = () => local.count % 2 === 0;
@@ -146,7 +146,7 @@ const clickCounter = defineCustomElement({ // runs once when a new custom elemen
       // safe to destructure inside render, provided handler functions are defined in instance; never update in render fn
       const cardClass = attr.class(['card', isEven() && 'even']);
       // makes valid class string: 'class="card even"' | 'class="card"'
-      return html`
+      return template`
         ${onTrue(isMaxed(), maxedStyle)}
         <slot></slot> ${/* Children go here. Components can have 0..n slots */}
         <p>Hello ${global.user?.name ?? 'there!'}</p>
@@ -219,22 +219,22 @@ const clickCounter = defineCustomElement({
     },
     render: () => {
       const { count, showMetadata } = { ...local, ...attrs }; 
-      const cardClass = attr.class(['card', isEven() && 'even'])/* FeAttx */;
+      const cardClass = attr.class(['card', isEven() && 'even'])/* Attr */;
 
       return template`
         ${isMaxed() ? maxedStyle : null/* StyleElement | null */}
-        <slot></slot>
+        <slot></slot>y
         <p>Hello ${global.user?.name ?? 'there!'}</p>
         ${onTrue(
           showMetadata, 
           onCase(getStatus(), [
             ['PENDING', () => span`<strong>Status: </strong> Stopped`],
-            ['DONE', () => span`<strong>Status: </strong> Max reached @ ${count /* FeXT */}`],
+            ['DONE', () => span`<strong>Status: </strong> Max reached @ ${count}`],
             ['OPEN', () => span`<strong>Status: </strong> Counting...`],
           ], h2`Error!`)
-        )/* element, fully executed each render */}
-        <div ${cardClass/* FeAttx */}>
-            ${btn`Count: ${count/* FeXT */}`.onClick(incrementCount)/* element */}
+        )/* element; expression is fully executed each render */}
+        <div ${cardClass/* Attr */}>
+            ${btn`Count: ${count}`.onClick(incrementCount)/* element: replaced each render */}
         </div>`
     },
     onDisconnect: () => { /* cleanup, e.g. window.removeEventListener */ }

@@ -8,6 +8,11 @@ export const mergeObjects = <A extends {}, B, C = unknown>(
 export const makeCallableObject = <F extends Function, O extends Obj>(f: F, o: O): F & O =>
   Object.assign(f, o);
 
+export const isWeakNever = (v: never): never => {
+  console.warn('Broke weak never constraint with value', v);
+  return v as never;
+};
+
 // from styled-components
 // function generateId(
 //   displayName?: string | undefined,
